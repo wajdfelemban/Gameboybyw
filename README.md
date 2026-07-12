@@ -21,6 +21,7 @@ To use it on your phone, enable **GitHub Pages** for this repo (Settings → Pag
 - **⏱️ Mock exam mode** — no feedback until the end, options can be left blank, timed, full review of every question afterwards with explanations.
 - **📊 Accuracy & progress** — overall and per-category accuracy, mastery pipeline (New → Learning → Reviewing → Mastered), due-for-review counts, and full session history.
 - **Retry incorrect** — one tap after any session to re-drill just what you missed.
+- **🌙 Night mode** — a day/night toggle in the top bar; your choice is saved, and on first visit it follows your device's light/dark setting.
 - **Answer-position shuffling** — options are re-lettered every session so you learn medicine, not letter positions.
 - **Keyboard shortcuts** — `1–4`/`A–D` answer, `Enter` next, `F` flag, `B` buzzwords.
 

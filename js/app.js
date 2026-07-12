@@ -11,7 +11,7 @@ const MASTER_BOX = 5; // box >= this counts as "mastered"
 const STORE_KEY = "smle_study_v1";
 
 /* ---------------- persistent state ---------------- */
-const defaultState = () => ({ q: {}, history: [], settings: { buzz: false } });
+const defaultState = () => ({ q: {}, history: [], settings: { buzz: false, theme: null } });
 
 let S = defaultState();
 try {
@@ -482,6 +482,29 @@ function syncSeg(sel, val) {
   for (const b of document.querySelectorAll(sel + " button"))
     b.classList.toggle("on", b.dataset.val === val);
 }
+
+/* ---- night mode: explicit choice persists; otherwise follow the system ---- */
+const prefersDark = () => window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+function applyTheme() {
+  const dark = S.settings.theme ? S.settings.theme === "dark" : prefersDark();
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  const btn = $("#btn-theme");
+  btn.textContent = dark ? "☀️" : "🌙";
+  btn.title = dark ? "Switch to day mode" : "Switch to night mode";
+}
+$("#btn-theme").onclick = () => {
+  const nowDark = document.documentElement.dataset.theme === "dark";
+  S.settings.theme = nowDark ? "light" : "dark";
+  save();
+  applyTheme();
+};
+// react to OS theme changes only while the user hasn't set an explicit choice
+if (window.matchMedia) {
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    if (!S.settings.theme) applyTheme();
+  });
+}
+applyTheme();
 
 $("#btn-home").onclick = renderHome;
 $("#btn-stats").onclick = renderStats;
