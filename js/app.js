@@ -11,7 +11,7 @@ const MASTER_BOX = 5; // box >= this counts as "mastered"
 const STORE_KEY = "smle_study_v1";
 
 /* ---------------- persistent state ---------------- */
-const defaultState = () => ({ q: {}, history: [], settings: { buzz: false } });
+const defaultState = () => ({ q: {}, history: [], settings: { buzz: false, theme: null } });
 
 let S = defaultState();
 try {
@@ -215,6 +215,7 @@ function renderQuestion() {
   $("#qp-num").textContent = `Question ${quiz.idx + 1} / ${quiz.items.length}`;
   $("#qp-mode").textContent = quiz.mode === "mock" ? "MOCK EXAM" : "STUDY";
   $("#qp-fill").style.width = (100 * quiz.idx / quiz.items.length) + "%";
+  $("#q-id").textContent = String(q.id).padStart(4, "0");
   $("#q-cat").textContent = q.sub;
   $("#q-text").innerHTML = renderQ(q.q);
   $("#q-card").classList.toggle("show-buzz", S.settings.buzz);
@@ -276,11 +277,11 @@ function revealAnswer(it, withRecall) {
   const fb = $("#feedback");
   fb.hidden = false;
   const banner = $("#fb-banner");
-  if (it.picked === null) { banner.className = "fb-banner no"; banner.textContent = "⏰ Time's up — counted as incorrect"; }
-  else if (it.correct) { banner.className = "fb-banner ok"; banner.textContent = "✓ Correct"; }
-  else { banner.className = "fb-banner no"; banner.textContent = "✗ Incorrect"; }
-  $("#fb-oneline").textContent = q.one ? "📌 " + q.one : "";
-  $("#fb-hy").textContent = q.hy ? "⭐ High-yield: " + q.hy : "";
+  if (it.picked === null) { banner.className = "fb-banner no"; banner.textContent = "TIME'S UP — COUNTED AS WRONG"; }
+  else if (it.correct) { banner.className = "fb-banner ok"; banner.textContent = "✓ CORRECT!"; }
+  else { banner.className = "fb-banner no"; banner.textContent = "✗ INCORRECT"; }
+  $("#fb-oneline").textContent = q.one ? "» " + q.one : "";
+  $("#fb-hy").innerHTML = q.hy ? "<b>★ HIGH YIELD</b>" + esc(q.hy) : "";
   $("#recall").hidden = !withRecall || !it.correct; // self-grade only when correct; wrong resets automatically
   if (!withRecall || !it.correct) {
     grade(q.id, !!it.correct, null);
@@ -361,7 +362,7 @@ function finishSession() {
   S.history = S.history.slice(0, 50);
   save();
 
-  $("#res-title").textContent = quiz.mode === "mock" ? "Mock Exam Results" : "Session Complete 🎉";
+  $("#res-title").textContent = quiz.mode === "mock" ? "MOCK EXAM RESULTS" : "SESSION CLEAR!";
   $("#res-pct").textContent = pct(right, quiz.items.length) + "%";
   $("#res-facts").innerHTML = `
     <span><b>${right}</b> correct</span>
@@ -384,7 +385,7 @@ function finishSession() {
   quiz.items.forEach((it, i) => {
     const b = document.createElement("button");
     b.className = "res-q " + (it.correct ? "ok" : "no");
-    b.innerHTML = (i + 1) + (qsPeek(it.q.id)?.flag ? '<span class="fl">🚩</span>' : "");
+    b.innerHTML = (i + 1) + (qsPeek(it.q.id)?.flag ? '<span class="fl">⚑</span>' : "");
     b.onclick = () => openReview(it);
     grid.appendChild(b);
   });
@@ -404,23 +405,23 @@ function openReview(it) {
   const q = it.q;
   const st = qsPeek(q.id);
   const opts = it.order.map((orig, pos) => {
-    const cls = orig === q.ans ? "correct" : orig === it.picked ? "wrong" : "";
+    const cls = orig === q.ans ? "correct" : "xno" + (orig === it.picked ? " wrong" : "");
     return `<div class="opt ${cls}" style="cursor:default"><span class="letter">${"ABCD"[pos]}</span>
       <span class="opt-body">${esc(q.opts[orig])}${q.expl[orig] ? `<span class="opt-expl">${esc(q.expl[orig])}</span>` : ""}</span></div>`;
   }).join("");
   $("#modal-body").innerHTML = `
-    <div class="q-meta"><span class="q-tag">${esc(q.sub)}</span>
-      <button class="toolbtn ${st?.flag ? "on" : ""}" id="modal-flag">🚩 ${st?.flag ? "Flagged" : "Flag"}</button></div>
+    <div class="q-meta"><span class="q-badges"><span class="q-id">${String(q.id).padStart(4, "0")}</span><span class="q-tag">${esc(q.sub)}</span></span>
+      <button class="toolbtn ${st?.flag ? "on" : ""}" id="modal-flag">⚑ ${st?.flag ? "Flagged" : "Flag"}</button></div>
     <div class="q-text q-card show-buzz" style="box-shadow:none;border:none;padding:0">${renderQ(q.q)}</div>
     <div class="opts" style="margin-top:.8rem">${opts}</div>
-    ${q.one ? `<div class="fb-oneline" style="margin-top:.9rem">📌 ${esc(q.one)}</div>` : ""}
-    ${q.hy ? `<div class="fb-hy">⭐ High-yield: ${esc(q.hy)}</div>` : ""}`;
+    ${q.one ? `<div class="fb-oneline" style="margin-top:.9rem">» ${esc(q.one)}</div>` : ""}
+    ${q.hy ? `<div class="fb-hy"><b>★ HIGH YIELD</b>${esc(q.hy)}</div>` : ""}`;
   $("#modal-flag").onclick = e => {
     const s = qs(q.id);
     s.flag = !s.flag;
     save();
     e.target.className = "toolbtn" + (s.flag ? " on" : "");
-    e.target.textContent = "🚩 " + (s.flag ? "Flagged" : "Flag");
+    e.target.textContent = "⚑ " + (s.flag ? "Flagged" : "Flag");
   };
   $("#modal").hidden = false;
 }
@@ -469,7 +470,7 @@ function renderStats() {
 
   $("#stats-history").innerHTML = S.history.length
     ? S.history.map(h => `<div class="hist-row">
-        <span><b>${h.mode === "mock" ? "⏱️ Mock" : "🧠 Study"}</b> · ${h.right}/${h.total} (${pct(h.right, h.total)}%)</span>
+        <span><b>${h.mode === "mock" ? "[MOCK]" : "[STUDY]"}</b> · ${h.right}/${h.total} (${pct(h.right, h.total)}%)</span>
         <span class="muted">${esc(h.cats.join(", "))}${h.cats.length >= 4 ? "…" : ""} · ${h.mins} min · ${fmtDate(h.ts)}</span>
       </div>`).join("")
     : `<p class="hint">No sessions yet.</p>`;
@@ -481,6 +482,29 @@ function syncSeg(sel, val) {
   for (const b of document.querySelectorAll(sel + " button"))
     b.classList.toggle("on", b.dataset.val === val);
 }
+
+/* ---- night mode: explicit choice persists; otherwise follow the system ---- */
+const prefersDark = () => window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+function applyTheme() {
+  const dark = S.settings.theme ? S.settings.theme === "dark" : prefersDark();
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  const btn = $("#btn-theme");
+  btn.textContent = dark ? "☀️" : "🌙";
+  btn.title = dark ? "Switch to day mode" : "Switch to night mode";
+}
+$("#btn-theme").onclick = () => {
+  const nowDark = document.documentElement.dataset.theme === "dark";
+  S.settings.theme = nowDark ? "light" : "dark";
+  save();
+  applyTheme();
+};
+// react to OS theme changes only while the user hasn't set an explicit choice
+if (window.matchMedia) {
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    if (!S.settings.theme) applyTheme();
+  });
+}
+applyTheme();
 
 $("#btn-home").onclick = renderHome;
 $("#btn-stats").onclick = renderStats;
@@ -546,6 +570,68 @@ $("#btn-reset").onclick = () => {
     S = defaultState(); save(); renderHome();
   }
 };
+
+/* ---------------- backup / cross-device transfer ---------------- */
+function exportProgress() {
+  const payload = JSON.stringify({ app: "smle-study", v: 1, exported: Date.now(), state: S });
+  const url = URL.createObjectURL(new Blob([payload], { type: "application/json" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `smle-progress-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// merge two saved states; per question the more recently studied record wins,
+// flags are OR'd, counts take the max, and history is unioned by timestamp
+function mergeState(local, incoming) {
+  const out = { q: {}, history: [], settings: local.settings };
+  const ids = new Set([...Object.keys(local.q || {}), ...Object.keys(incoming.q || {})]);
+  for (const id of ids) {
+    const a = (local.q || {})[id], b = (incoming.q || {})[id];
+    if (!a || !b) { out.q[id] = a || b; continue; }
+    const pick = { ...((b.last || 0) > (a.last || 0) ? b : a) };
+    pick.flag = !!(a.flag || b.flag);
+    pick.seen = Math.max(a.seen || 0, b.seen || 0);
+    pick.right = Math.max(a.right || 0, b.right || 0);
+    pick.wrong = Math.max(a.wrong || 0, b.wrong || 0);
+    out.q[id] = pick;
+  }
+  const seen = new Set();
+  out.history = [...(local.history || []), ...(incoming.history || [])]
+    .sort((x, y) => y.ts - x.ts)
+    .filter(h => (seen.has(h.ts) ? false : seen.add(h.ts)))
+    .slice(0, 50);
+  return out;
+}
+
+function importProgress(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    let incoming;
+    try {
+      const parsed = JSON.parse(reader.result);
+      incoming = parsed && parsed.state ? parsed.state : parsed; // accept wrapped or raw
+      if (!incoming || typeof incoming !== "object" || typeof incoming.q !== "object") throw new Error("shape");
+    } catch (e) {
+      alert("Couldn't read that file — pick a progress file exported from this app.");
+      return;
+    }
+    const before = Object.keys(S.q).length;
+    S = Object.assign(defaultState(), { settings: S.settings }, mergeState(S, incoming));
+    save();
+    renderStats();
+    const after = Object.keys(S.q).length;
+    alert(`Progress merged ✓  (${after - before} new question${after - before === 1 ? "" : "s"} added, ${after} total)`);
+  };
+  reader.readAsText(file);
+}
+
+$("#btn-export").onclick = exportProgress;
+$("#btn-import").onclick = () => $("#import-file").click();
+$("#import-file").onchange = e => { if (e.target.files[0]) importProgress(e.target.files[0]); e.target.value = ""; };
 
 // keyboard shortcuts: 1-4 / A-D pick options, Enter = next, F = flag, B = buzzwords
 document.addEventListener("keydown", e => {

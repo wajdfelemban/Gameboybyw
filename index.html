@@ -3,17 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SMLE Smart Study</title>
+<title>SMLE — GameBoy Prep</title>
 <link rel="stylesheet" href="css/style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🩺</text></svg>">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e3323">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SMLE Study">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
 </head>
 <body>
 
 <header class="topbar">
   <div class="topbar-inner">
-    <button class="brand" id="btn-home">🩺 SMLE <span>Smart Study</span></button>
+    <button class="brand" id="btn-home">GAMEBOY · SMLE PREP</button>
     <nav>
-      <button class="navbtn" id="btn-stats">📊 Stats</button>
+      <button class="navbtn" id="btn-theme" title="Toggle night mode" aria-label="Toggle night mode">🌙</button>
+      <button class="navbtn" id="btn-stats">STATS</button>
     </nav>
   </div>
 </header>
@@ -22,33 +29,42 @@
 
   <!-- ============ HOME / DASHBOARD ============ -->
   <section id="view-home" hidden>
-    <div class="hero">
-      <h1>Study smarter, not longer.</h1>
-      <p class="sub">Active recall + spaced repetition on your 598-question SMLE bank.</p>
+    <div class="hero-card">
+      <span class="hero-dots"><i></i><i></i><i></i></span>
+      <p class="hero-kicker">GAMEBOY · SMLE PREP</p>
+      <h1>SMART<br>STUDY</h1>
+      <p class="hero-sub">Active recall + spaced repetition — highlighted clues, why each option is right or wrong, and a high-yield box per question.</p>
+    </div>
+
+    <div class="legend">
+      <span class="lg"><i class="sq clue"></i>clue / keyword</span>
+      <span class="lg"><i class="sq ok"></i>correct answer</span>
+      <span class="lg"><i class="sq no"></i>incorrect</span>
+      <span class="lg"><i class="sq hy"></i>high yield</span>
     </div>
 
     <div class="stat-grid" id="home-stats"></div>
 
     <div class="action-grid">
-      <button class="action-card primary" id="btn-study">
-        <span class="ac-icon">🧠</span>
-        <span class="ac-title">Study Session</span>
-        <span class="ac-desc">Spaced repetition picks what you need most. Instant feedback &amp; explanations.</span>
+      <button class="action-card" id="btn-study">
+        <span class="gb-key key-a">A</span>
+        <span class="ac-body"><span class="ac-title">Study Session</span>
+        <span class="ac-desc">Spaced repetition picks what you need most. Instant feedback &amp; explanations.</span></span>
       </button>
-      <button class="action-card exam" id="btn-mock">
-        <span class="ac-icon">⏱️</span>
-        <span class="ac-title">Mock Exam</span>
-        <span class="ac-desc">Timed, no feedback until the end. Real exam conditions.</span>
+      <button class="action-card" id="btn-mock">
+        <span class="gb-key key-b">B</span>
+        <span class="ac-body"><span class="ac-title">Mock Exam</span>
+        <span class="ac-desc">Timed, no feedback until the end. Real exam conditions.</span></span>
       </button>
       <button class="action-card" id="btn-flagged">
-        <span class="ac-icon">🚩</span>
-        <span class="ac-title">Flagged Questions</span>
-        <span class="ac-desc" id="flagged-desc">Review the questions you marked.</span>
+        <span class="gb-key key-pill sel">SELECT</span>
+        <span class="ac-body"><span class="ac-title">Flagged</span>
+        <span class="ac-desc" id="flagged-desc">Review the questions you marked.</span></span>
       </button>
       <button class="action-card" id="btn-weak">
-        <span class="ac-icon">🎯</span>
-        <span class="ac-title">Weak Spots</span>
-        <span class="ac-desc" id="weak-desc">Drill questions you've gotten wrong.</span>
+        <span class="gb-key key-pill str">START</span>
+        <span class="ac-body"><span class="ac-title">Weak Spots</span>
+        <span class="ac-desc" id="weak-desc">Drill questions you've gotten wrong.</span></span>
       </button>
     </div>
   </section>
@@ -91,13 +107,13 @@
       <div class="seg" id="filter-seg">
         <button data-val="smart" class="on">Smart (due + new)</button>
         <button data-val="all">All</button>
-        <button data-val="new">Unseen only</button>
-        <button data-val="wrong">Previously wrong</button>
+        <button data-val="new">Unseen</button>
+        <button data-val="wrong">Wrong</button>
         <button data-val="flag">Flagged</button>
       </div>
     </div>
 
-    <button class="bigbtn" id="btn-start">Start →</button>
+    <button class="bigbtn" id="btn-start">START →</button>
     <p class="hint err" id="setup-err" hidden></p>
   </section>
 
@@ -114,10 +130,10 @@
 
     <div class="q-card" id="q-card">
       <div class="q-meta">
-        <span class="q-tag" id="q-cat"></span>
+        <span class="q-badges"><span class="q-id" id="q-id"></span><span class="q-tag" id="q-cat"></span></span>
         <span class="q-tools">
-          <button class="toolbtn" id="btn-buzz" title="Highlight buzzwords">💡 Buzzwords</button>
-          <button class="toolbtn" id="btn-flag" title="Flag this question">🚩</button>
+          <button class="toolbtn" id="btn-buzz" title="Highlight buzzwords">💡 Clues</button>
+          <button class="toolbtn" id="btn-flag" title="Flag this question">⚑ Flag</button>
         </span>
       </div>
       <div class="q-text" id="q-text"></div>
@@ -128,7 +144,7 @@
         <div class="fb-oneline" id="fb-oneline"></div>
         <div class="fb-hy" id="fb-hy"></div>
         <div class="recall" id="recall">
-          <p>How well did you know it?</p>
+          <p>HOW WELL DID YOU KNOW IT?</p>
           <div class="recall-btns">
             <button data-grade="again" class="r-again">Again<small>&lt;1d</small></button>
             <button data-grade="hard" class="r-hard">Hard<small>soon</small></button>
@@ -140,16 +156,16 @@
     </div>
 
     <div class="quiz-bottom">
-      <button class="bigbtn" id="btn-next" hidden>Next →</button>
-      <button class="bigbtn ghost" id="btn-skip" hidden>Skip (no answer) →</button>
+      <button class="bigbtn" id="btn-next" hidden>NEXT →</button>
+      <button class="bigbtn ghost" id="btn-skip" hidden>SKIP (NO ANSWER) →</button>
     </div>
   </section>
 
   <!-- ============ RESULTS ============ -->
   <section id="view-results" hidden>
-    <h2 id="res-title">Session Complete 🎉</h2>
+    <h2 id="res-title">Session Complete!</h2>
     <div class="res-hero">
-      <div class="res-score"><span id="res-pct"></span><small>accuracy</small></div>
+      <div class="res-score"><span id="res-pct"></span><small>ACCURACY</small></div>
       <div class="res-facts" id="res-facts"></div>
     </div>
     <h3>By category</h3>
@@ -157,8 +173,8 @@
     <h3>Questions <span class="hint">tap to review</span></h3>
     <div id="res-qs" class="res-qs"></div>
     <div class="res-actions">
-      <button class="bigbtn" id="btn-res-retry">Retry incorrect</button>
-      <button class="bigbtn ghost" id="btn-res-home">Done</button>
+      <button class="bigbtn" id="btn-res-retry">RETRY INCORRECT</button>
+      <button class="bigbtn ghost" id="btn-res-home">DONE</button>
     </div>
   </section>
 
@@ -173,6 +189,15 @@
     <div class="bars" id="stats-cats"></div>
     <h3>Session history</h3>
     <div id="stats-history" class="history"></div>
+
+    <h3>Backup &amp; move between devices</h3>
+    <p class="hint">Export saves your progress to a file. Import merges a file from another device — nothing is lost, the newer progress wins per question.</p>
+    <div class="data-tools">
+      <button class="bigbtn ghost" id="btn-export">⬇︎ Export progress</button>
+      <button class="bigbtn ghost" id="btn-import">⬆︎ Import progress</button>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+    </div>
+
     <button class="dangerlink" id="btn-reset">Reset all progress…</button>
   </section>
 
@@ -188,5 +213,12 @@
 
 <script src="js/data.js"></script>
 <script src="js/app.js"></script>
+<script>
+/* Register the service worker for offline use. Only works over http(s)
+   (GitHub Pages / Firebase / a local server), silently skipped on file://. */
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+</script>
 </body>
 </html>

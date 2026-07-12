@@ -1,12 +1,14 @@
-# 🩺 SMLE Smart Study
+# 🎮 SMLE Smart Study — Dot Matrix Edition
 
 A smart, efficient SMLE prep app built around **active recall** and **spaced repetition**, running entirely in your browser on a 598-question bank — no server, no account, no install.
 
+Designed in the **GameBoy · SMLE Prep** style: cream page, white question cards, dark pine header with pixel-font accents (Press Start 2P, self-hosted in `assets/fonts/`), yellow clue/keyword highlights, green/red option cards with per-option explanations, and a teal ★ HIGH YIELD box per question.
+
 ## Run it
 
-Open `index.html` in any browser. That's it.
+Open `index.html` in any browser. That's it. Or open `SMLE-Study-standalone.html` — a single self-contained file that runs fully offline with no other files.
 
-To use it on your phone, enable **GitHub Pages** for this repo (Settings → Pages → deploy from branch) and open the URL — progress is saved in the browser via localStorage.
+**Install as an app (PWA):** serve the repo over HTTPS — the simplest is **GitHub Pages** (Settings → Pages → deploy from branch) — then open the URL on your phone and choose *Add to Home Screen*. After the first load it works **completely offline** (a service worker caches all assets) and progress is saved on the device via localStorage. Bump `CACHE` in `sw.js` whenever cached assets change.
 
 ## Features
 
@@ -19,6 +21,8 @@ To use it on your phone, enable **GitHub Pages** for this repo (Settings → Pag
 - **⏱️ Mock exam mode** — no feedback until the end, options can be left blank, timed, full review of every question afterwards with explanations.
 - **📊 Accuracy & progress** — overall and per-category accuracy, mastery pipeline (New → Learning → Reviewing → Mastered), due-for-review counts, and full session history.
 - **Retry incorrect** — one tap after any session to re-drill just what you missed.
+- **🌙 Night mode** — a day/night toggle in the top bar; your choice is saved, and on first visit it follows your device's light/dark setting.
+- **Backup & move between devices** — Export your progress to a small JSON file and Import it on another device. Import *merges* (never overwrites): per question the more recently studied record wins, flags are kept, and session history is unioned. Works fully offline — no account, no server.
 - **Answer-position shuffling** — options are re-lettered every session so you learn medicine, not letter positions.
 - **Keyboard shortcuts** — `1–4`/`A–D` answer, `Enter` next, `F` flag, `B` buzzwords.
 
@@ -26,9 +30,10 @@ To use it on your phone, enable **GitHub Pages** for this repo (Settings → Pag
 
 ```
 index.html          the app shell
-css/style.css       styling (light + dark mode)
+css/style.css       GameBoy SMLE Prep theme (cream + pine + pixel accents)
 js/app.js           app logic + spaced-repetition engine
 js/data.js          generated question bank (don't edit by hand)
+assets/fonts/       self-hosted pixel font (Press Start 2P)
 data/SMLE_Master.csv  source question bank
 tools/csv_to_data.py  regenerates js/data.js from the CSV
 ```
