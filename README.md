@@ -6,9 +6,9 @@ Designed in the **GameBoy · SMLE Prep** style: cream page, white question cards
 
 ## Run it
 
-Open `index.html` in any browser. That's it.
+Open `index.html` in any browser. That's it. Or open `SMLE-Study-standalone.html` — a single self-contained file that runs fully offline with no other files.
 
-To use it on your phone, enable **GitHub Pages** for this repo (Settings → Pages → deploy from branch) and open the URL — progress is saved in the browser via localStorage.
+**Install as an app (PWA):** serve the repo over HTTPS — the simplest is **GitHub Pages** (Settings → Pages → deploy from branch) — then open the URL on your phone and choose *Add to Home Screen*. After the first load it works **completely offline** (a service worker caches all assets) and progress is saved on the device via localStorage. Bump `CACHE` in `sw.js` whenever cached assets change.
 
 ## Features
 
