@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMLE Smart Study</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🩺</text></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <button class="brand" id="btn-home">🩺 SMLE <span>Smart Study</span></button>
+    <nav>
+      <button class="navbtn" id="btn-stats">📊 Stats</button>
+    </nav>
+  </div>
+</header>
+
+<main id="app">
+
+  <!-- ============ HOME / DASHBOARD ============ -->
+  <section id="view-home" hidden>
+    <div class="hero">
+      <h1>Study smarter, not longer.</h1>
+      <p class="sub">Active recall + spaced repetition on your 598-question SMLE bank.</p>
+    </div>
+
+    <div class="stat-grid" id="home-stats"></div>
+
+    <div class="action-grid">
+      <button class="action-card primary" id="btn-study">
+        <span class="ac-icon">🧠</span>
+        <span class="ac-title">Study Session</span>
+        <span class="ac-desc">Spaced repetition picks what you need most. Instant feedback &amp; explanations.</span>
+      </button>
+      <button class="action-card exam" id="btn-mock">
+        <span class="ac-icon">⏱️</span>
+        <span class="ac-title">Mock Exam</span>
+        <span class="ac-desc">Timed, no feedback until the end. Real exam conditions.</span>
+      </button>
+      <button class="action-card" id="btn-flagged">
+        <span class="ac-icon">🚩</span>
+        <span class="ac-title">Flagged Questions</span>
+        <span class="ac-desc" id="flagged-desc">Review the questions you marked.</span>
+      </button>
+      <button class="action-card" id="btn-weak">
+        <span class="ac-icon">🎯</span>
+        <span class="ac-title">Weak Spots</span>
+        <span class="ac-desc" id="weak-desc">Drill questions you've gotten wrong.</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ============ SESSION SETUP ============ -->
+  <section id="view-setup" hidden>
+    <button class="backlink" data-back>← Back</button>
+    <h2 id="setup-title">Study Session</h2>
+
+    <div class="setup-block">
+      <h3>Categories <span class="hint" id="pool-count"></span></h3>
+      <div class="cat-actions">
+        <button class="chipbtn" id="cats-all">Select all</button>
+        <button class="chipbtn" id="cats-none">Clear</button>
+      </div>
+      <div id="cat-list" class="cat-list"></div>
+    </div>
+
+    <div class="setup-block">
+      <h3>Number of questions</h3>
+      <div class="count-row">
+        <input type="range" id="q-count" min="5" max="100" step="5" value="20">
+        <output id="q-count-out">20</output>
+      </div>
+    </div>
+
+    <div class="setup-block">
+      <h3>Timer per question</h3>
+      <div class="seg" id="timer-seg">
+        <button data-val="0">Off</button>
+        <button data-val="60">60s</button>
+        <button data-val="90" class="on">90s</button>
+        <button data-val="120">120s</button>
+      </div>
+      <p class="hint" id="timer-hint">Study mode: the timer keeps you honest but won't skip you. The real SMLE gives ~72s per question.</p>
+    </div>
+
+    <div class="setup-block" id="filter-block">
+      <h3>Question pool</h3>
+      <div class="seg" id="filter-seg">
+        <button data-val="smart" class="on">Smart (due + new)</button>
+        <button data-val="all">All</button>
+        <button data-val="new">Unseen only</button>
+        <button data-val="wrong">Previously wrong</button>
+        <button data-val="flag">Flagged</button>
+      </div>
+    </div>
+
+    <button class="bigbtn" id="btn-start">Start →</button>
+    <p class="hint err" id="setup-err" hidden></p>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section id="view-quiz" hidden>
+    <div class="quiz-top">
+      <button class="iconbtn" id="btn-quit" title="End session">✕</button>
+      <div class="quiz-progress">
+        <div class="qp-text"><span id="qp-num"></span><span id="qp-mode" class="modechip"></span></div>
+        <div class="qp-bar"><div id="qp-fill"></div></div>
+      </div>
+      <div class="timer" id="timer" hidden><svg viewBox="0 0 40 40"><circle class="t-bg" cx="20" cy="20" r="17"/><circle class="t-fg" id="timer-ring" cx="20" cy="20" r="17"/></svg><span id="timer-text"></span></div>
+    </div>
+
+    <div class="q-card" id="q-card">
+      <div class="q-meta">
+        <span class="q-tag" id="q-cat"></span>
+        <span class="q-tools">
+          <button class="toolbtn" id="btn-buzz" title="Highlight buzzwords">💡 Buzzwords</button>
+          <button class="toolbtn" id="btn-flag" title="Flag this question">🚩</button>
+        </span>
+      </div>
+      <div class="q-text" id="q-text"></div>
+      <div class="opts" id="opts"></div>
+
+      <div id="feedback" hidden>
+        <div class="fb-banner" id="fb-banner"></div>
+        <div class="fb-oneline" id="fb-oneline"></div>
+        <div class="fb-hy" id="fb-hy"></div>
+        <div class="recall" id="recall">
+          <p>How well did you know it?</p>
+          <div class="recall-btns">
+            <button data-grade="again" class="r-again">Again<small>&lt;1d</small></button>
+            <button data-grade="hard" class="r-hard">Hard<small>soon</small></button>
+            <button data-grade="good" class="r-good">Good<small>later</small></button>
+            <button data-grade="easy" class="r-easy">Easy<small>much later</small></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quiz-bottom">
+      <button class="bigbtn" id="btn-next" hidden>Next →</button>
+      <button class="bigbtn ghost" id="btn-skip" hidden>Skip (no answer) →</button>
+    </div>
+  </section>
+
+  <!-- ============ RESULTS ============ -->
+  <section id="view-results" hidden>
+    <h2 id="res-title">Session Complete 🎉</h2>
+    <div class="res-hero">
+      <div class="res-score"><span id="res-pct"></span><small>accuracy</small></div>
+      <div class="res-facts" id="res-facts"></div>
+    </div>
+    <h3>By category</h3>
+    <div id="res-cats" class="bars"></div>
+    <h3>Questions <span class="hint">tap to review</span></h3>
+    <div id="res-qs" class="res-qs"></div>
+    <div class="res-actions">
+      <button class="bigbtn" id="btn-res-retry">Retry incorrect</button>
+      <button class="bigbtn ghost" id="btn-res-home">Done</button>
+    </div>
+  </section>
+
+  <!-- ============ STATS ============ -->
+  <section id="view-stats" hidden>
+    <button class="backlink" data-back>← Back</button>
+    <h2>Your Progress</h2>
+    <div class="stat-grid" id="stats-top"></div>
+    <h3>Mastery pipeline</h3>
+    <div class="pipeline" id="pipeline"></div>
+    <h3>Accuracy by category</h3>
+    <div class="bars" id="stats-cats"></div>
+    <h3>Session history</h3>
+    <div id="stats-history" class="history"></div>
+    <button class="dangerlink" id="btn-reset">Reset all progress…</button>
+  </section>
+
+</main>
+
+<!-- review modal -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-card">
+    <button class="iconbtn modal-x" id="modal-x">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
