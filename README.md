@@ -2,7 +2,7 @@
 
 A smart, efficient SMLE prep app built around **active recall** and **spaced repetition**, running entirely in your browser on a 598-question bank — no server, no account, no install.
 
-Styled as a classic **Game Boy dot-matrix display**: the original DMG-01 four-shade green LCD palette, pixel fonts (Press Start 2P + VT323, self-hosted in `assets/fonts/`), dot-matrix screen texture, chunky pixel borders, and A/B/SELECT/START buttons on the home menu.
+Designed in the **GameBoy · SMLE Prep** style: cream page, white question cards, dark pine header with pixel-font accents (Press Start 2P, self-hosted in `assets/fonts/`), yellow clue/keyword highlights, green/red option cards with per-option explanations, and a teal ★ HIGH YIELD box per question.
 
 ## Run it
 
@@ -27,11 +27,11 @@ To use it on your phone, enable **GitHub Pages** for this repo (Settings → Pag
 ## Structure
 
 ```
-index.html          the app shell (Game Boy bezel + screen)
-css/style.css       Game Boy DMG theme
+index.html          the app shell
+css/style.css       GameBoy SMLE Prep theme (cream + pine + pixel accents)
 js/app.js           app logic + spaced-repetition engine
 js/data.js          generated question bank (don't edit by hand)
-assets/fonts/       self-hosted pixel fonts (Press Start 2P, VT323)
+assets/fonts/       self-hosted pixel font (Press Start 2P)
 data/SMLE_Master.csv  source question bank
 tools/csv_to_data.py  regenerates js/data.js from the CSV
 ```

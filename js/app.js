@@ -215,6 +215,7 @@ function renderQuestion() {
   $("#qp-num").textContent = `Question ${quiz.idx + 1} / ${quiz.items.length}`;
   $("#qp-mode").textContent = quiz.mode === "mock" ? "MOCK EXAM" : "STUDY";
   $("#qp-fill").style.width = (100 * quiz.idx / quiz.items.length) + "%";
+  $("#q-id").textContent = String(q.id).padStart(4, "0");
   $("#q-cat").textContent = q.sub;
   $("#q-text").innerHTML = renderQ(q.q);
   $("#q-card").classList.toggle("show-buzz", S.settings.buzz);
@@ -277,10 +278,10 @@ function revealAnswer(it, withRecall) {
   fb.hidden = false;
   const banner = $("#fb-banner");
   if (it.picked === null) { banner.className = "fb-banner no"; banner.textContent = "TIME'S UP — COUNTED AS WRONG"; }
-  else if (it.correct) { banner.className = "fb-banner ok"; banner.textContent = "★ CORRECT!"; }
-  else { banner.className = "fb-banner no"; banner.textContent = "✕ WRONG"; }
+  else if (it.correct) { banner.className = "fb-banner ok"; banner.textContent = "✓ CORRECT!"; }
+  else { banner.className = "fb-banner no"; banner.textContent = "✗ INCORRECT"; }
   $("#fb-oneline").textContent = q.one ? "» " + q.one : "";
-  $("#fb-hy").textContent = q.hy ? "★ HIGH-YIELD: " + q.hy : "";
+  $("#fb-hy").innerHTML = q.hy ? "<b>★ HIGH YIELD</b>" + esc(q.hy) : "";
   $("#recall").hidden = !withRecall || !it.correct; // self-grade only when correct; wrong resets automatically
   if (!withRecall || !it.correct) {
     grade(q.id, !!it.correct, null);
@@ -404,23 +405,23 @@ function openReview(it) {
   const q = it.q;
   const st = qsPeek(q.id);
   const opts = it.order.map((orig, pos) => {
-    const cls = orig === q.ans ? "correct" : orig === it.picked ? "wrong" : "";
+    const cls = orig === q.ans ? "correct" : "xno" + (orig === it.picked ? " wrong" : "");
     return `<div class="opt ${cls}" style="cursor:default"><span class="letter">${"ABCD"[pos]}</span>
       <span class="opt-body">${esc(q.opts[orig])}${q.expl[orig] ? `<span class="opt-expl">${esc(q.expl[orig])}</span>` : ""}</span></div>`;
   }).join("");
   $("#modal-body").innerHTML = `
-    <div class="q-meta"><span class="q-tag">${esc(q.sub)}</span>
-      <button class="toolbtn ${st?.flag ? "on" : ""}" id="modal-flag">⚑ ${st?.flag ? "FLAGGED" : "FLAG"}</button></div>
+    <div class="q-meta"><span class="q-badges"><span class="q-id">${String(q.id).padStart(4, "0")}</span><span class="q-tag">${esc(q.sub)}</span></span>
+      <button class="toolbtn ${st?.flag ? "on" : ""}" id="modal-flag">⚑ ${st?.flag ? "Flagged" : "Flag"}</button></div>
     <div class="q-text q-card show-buzz" style="box-shadow:none;border:none;padding:0">${renderQ(q.q)}</div>
     <div class="opts" style="margin-top:.8rem">${opts}</div>
-    ${q.one ? `<div class="fb-oneline" style="margin-top:.9rem">📌 ${esc(q.one)}</div>` : ""}
-    ${q.hy ? `<div class="fb-hy">⭐ High-yield: ${esc(q.hy)}</div>` : ""}`;
+    ${q.one ? `<div class="fb-oneline" style="margin-top:.9rem">» ${esc(q.one)}</div>` : ""}
+    ${q.hy ? `<div class="fb-hy"><b>★ HIGH YIELD</b>${esc(q.hy)}</div>` : ""}`;
   $("#modal-flag").onclick = e => {
     const s = qs(q.id);
     s.flag = !s.flag;
     save();
     e.target.className = "toolbtn" + (s.flag ? " on" : "");
-    e.target.textContent = "⚑ " + (s.flag ? "FLAGGED" : "FLAG");
+    e.target.textContent = "⚑ " + (s.flag ? "Flagged" : "Flag");
   };
   $("#modal").hidden = false;
 }
