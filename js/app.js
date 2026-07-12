@@ -63,8 +63,22 @@ const groups = (() => {
 /* ---------------- utils ---------------- */
 const $ = sel => document.querySelector(sel);
 const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-// render **buzzword** markers as toggleable highlight spans
-const renderQ = text => esc(text).replace(/\*\*(.+?)\*\*/g, '<span class="buzz">$1</span>').replace(/\*\*/g, "");
+// render clues as toggleable highlight spans: prefer **markers** in the stem,
+// otherwise fall back to wrapping any buzzword phrases that appear verbatim
+const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const renderQ = (text, buzz) => {
+  if (/\*\*/.test(text))
+    return esc(text).replace(/\*\*(.+?)\*\*/g, '<span class="buzz">$1</span>').replace(/\*\*/g, "");
+  let html = esc(text);
+  for (const ph of buzz || []) {
+    const p = ph.trim();
+    if (p) html = html.replace(new RegExp("(" + escRe(esc(p)) + ")", "i"), '<span class="buzz">$1</span>');
+  }
+  return html;
+};
+// does this question have any clue to highlight?
+const hasClues = q => /\*\*/.test(q.q) ||
+  (q.buzz || []).some(b => b.trim() && q.q.toLowerCase().includes(b.trim().toLowerCase()));
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const pct = (n, d) => d ? Math.round(100 * n / d) : 0;
 const fmtDate = ts => new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " + new Date(ts).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
@@ -217,9 +231,13 @@ function renderQuestion() {
   $("#qp-fill").style.width = (100 * quiz.idx / quiz.items.length) + "%";
   $("#q-id").textContent = String(q.id).padStart(4, "0");
   $("#q-cat").textContent = q.sub;
-  $("#q-text").innerHTML = renderQ(q.q);
-  $("#q-card").classList.toggle("show-buzz", S.settings.buzz);
-  $("#btn-buzz").classList.toggle("on", S.settings.buzz);
+  $("#q-text").innerHTML = renderQ(q.q, q.buzz);
+  const clues = hasClues(q);
+  const buzzBtn = $("#btn-buzz");
+  buzzBtn.disabled = !clues;
+  buzzBtn.textContent = clues ? "💡 Clues" : "No clues";
+  $("#q-card").classList.toggle("show-buzz", S.settings.buzz && clues);
+  buzzBtn.classList.toggle("on", S.settings.buzz && clues);
   $("#btn-flag").classList.toggle("on", !!qsPeek(q.id)?.flag);
   $("#feedback").hidden = true;
   $("#btn-next").hidden = true;
@@ -412,7 +430,7 @@ function openReview(it) {
   $("#modal-body").innerHTML = `
     <div class="q-meta"><span class="q-badges"><span class="q-id">${String(q.id).padStart(4, "0")}</span><span class="q-tag">${esc(q.sub)}</span></span>
       <button class="toolbtn ${st?.flag ? "on" : ""}" id="modal-flag">⚑ ${st?.flag ? "Flagged" : "Flag"}</button></div>
-    <div class="q-text q-card show-buzz" style="box-shadow:none;border:none;padding:0">${renderQ(q.q)}</div>
+    <div class="q-text q-card show-buzz" style="box-shadow:none;border:none;padding:0">${renderQ(q.q, q.buzz)}</div>
     <div class="opts" style="margin-top:.8rem">${opts}</div>
     ${q.one ? `<div class="fb-oneline" style="margin-top:.9rem">» ${esc(q.one)}</div>` : ""}
     ${q.hy ? `<div class="fb-hy"><b>★ HIGH YIELD</b>${esc(q.hy)}</div>` : ""}`;
