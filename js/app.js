@@ -276,11 +276,11 @@ function revealAnswer(it, withRecall) {
   const fb = $("#feedback");
   fb.hidden = false;
   const banner = $("#fb-banner");
-  if (it.picked === null) { banner.className = "fb-banner no"; banner.textContent = "⏰ Time's up — counted as incorrect"; }
-  else if (it.correct) { banner.className = "fb-banner ok"; banner.textContent = "✓ Correct"; }
-  else { banner.className = "fb-banner no"; banner.textContent = "✗ Incorrect"; }
-  $("#fb-oneline").textContent = q.one ? "📌 " + q.one : "";
-  $("#fb-hy").textContent = q.hy ? "⭐ High-yield: " + q.hy : "";
+  if (it.picked === null) { banner.className = "fb-banner no"; banner.textContent = "TIME'S UP — COUNTED AS WRONG"; }
+  else if (it.correct) { banner.className = "fb-banner ok"; banner.textContent = "★ CORRECT!"; }
+  else { banner.className = "fb-banner no"; banner.textContent = "✕ WRONG"; }
+  $("#fb-oneline").textContent = q.one ? "» " + q.one : "";
+  $("#fb-hy").textContent = q.hy ? "★ HIGH-YIELD: " + q.hy : "";
   $("#recall").hidden = !withRecall || !it.correct; // self-grade only when correct; wrong resets automatically
   if (!withRecall || !it.correct) {
     grade(q.id, !!it.correct, null);
@@ -361,7 +361,7 @@ function finishSession() {
   S.history = S.history.slice(0, 50);
   save();
 
-  $("#res-title").textContent = quiz.mode === "mock" ? "Mock Exam Results" : "Session Complete 🎉";
+  $("#res-title").textContent = quiz.mode === "mock" ? "MOCK EXAM RESULTS" : "SESSION CLEAR!";
   $("#res-pct").textContent = pct(right, quiz.items.length) + "%";
   $("#res-facts").innerHTML = `
     <span><b>${right}</b> correct</span>
@@ -384,7 +384,7 @@ function finishSession() {
   quiz.items.forEach((it, i) => {
     const b = document.createElement("button");
     b.className = "res-q " + (it.correct ? "ok" : "no");
-    b.innerHTML = (i + 1) + (qsPeek(it.q.id)?.flag ? '<span class="fl">🚩</span>' : "");
+    b.innerHTML = (i + 1) + (qsPeek(it.q.id)?.flag ? '<span class="fl">⚑</span>' : "");
     b.onclick = () => openReview(it);
     grid.appendChild(b);
   });
@@ -410,7 +410,7 @@ function openReview(it) {
   }).join("");
   $("#modal-body").innerHTML = `
     <div class="q-meta"><span class="q-tag">${esc(q.sub)}</span>
-      <button class="toolbtn ${st?.flag ? "on" : ""}" id="modal-flag">🚩 ${st?.flag ? "Flagged" : "Flag"}</button></div>
+      <button class="toolbtn ${st?.flag ? "on" : ""}" id="modal-flag">⚑ ${st?.flag ? "FLAGGED" : "FLAG"}</button></div>
     <div class="q-text q-card show-buzz" style="box-shadow:none;border:none;padding:0">${renderQ(q.q)}</div>
     <div class="opts" style="margin-top:.8rem">${opts}</div>
     ${q.one ? `<div class="fb-oneline" style="margin-top:.9rem">📌 ${esc(q.one)}</div>` : ""}
@@ -420,7 +420,7 @@ function openReview(it) {
     s.flag = !s.flag;
     save();
     e.target.className = "toolbtn" + (s.flag ? " on" : "");
-    e.target.textContent = "🚩 " + (s.flag ? "Flagged" : "Flag");
+    e.target.textContent = "⚑ " + (s.flag ? "FLAGGED" : "FLAG");
   };
   $("#modal").hidden = false;
 }
@@ -469,7 +469,7 @@ function renderStats() {
 
   $("#stats-history").innerHTML = S.history.length
     ? S.history.map(h => `<div class="hist-row">
-        <span><b>${h.mode === "mock" ? "⏱️ Mock" : "🧠 Study"}</b> · ${h.right}/${h.total} (${pct(h.right, h.total)}%)</span>
+        <span><b>${h.mode === "mock" ? "[MOCK]" : "[STUDY]"}</b> · ${h.right}/${h.total} (${pct(h.right, h.total)}%)</span>
         <span class="muted">${esc(h.cats.join(", "))}${h.cats.length >= 4 ? "…" : ""} · ${h.mins} min · ${fmtDate(h.ts)}</span>
       </div>`).join("")
     : `<p class="hint">No sessions yet.</p>`;
