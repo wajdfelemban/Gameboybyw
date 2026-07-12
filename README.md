@@ -22,6 +22,7 @@ Open `index.html` in any browser. That's it. Or open `SMLE-Study-standalone.html
 - **📊 Accuracy & progress** — overall and per-category accuracy, mastery pipeline (New → Learning → Reviewing → Mastered), due-for-review counts, and full session history.
 - **Retry incorrect** — one tap after any session to re-drill just what you missed.
 - **🌙 Night mode** — a day/night toggle in the top bar; your choice is saved, and on first visit it follows your device's light/dark setting.
+- **Backup & move between devices** — Export your progress to a small JSON file and Import it on another device. Import *merges* (never overwrites): per question the more recently studied record wins, flags are kept, and session history is unioned. Works fully offline — no account, no server.
 - **Answer-position shuffling** — options are re-lettered every session so you learn medicine, not letter positions.
 - **Keyboard shortcuts** — `1–4`/`A–D` answer, `Enter` next, `F` flag, `B` buzzwords.
 

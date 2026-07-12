@@ -189,6 +189,15 @@
     <div class="bars" id="stats-cats"></div>
     <h3>Session history</h3>
     <div id="stats-history" class="history"></div>
+
+    <h3>Backup &amp; move between devices</h3>
+    <p class="hint">Export saves your progress to a file. Import merges a file from another device — nothing is lost, the newer progress wins per question.</p>
+    <div class="data-tools">
+      <button class="bigbtn ghost" id="btn-export">⬇︎ Export progress</button>
+      <button class="bigbtn ghost" id="btn-import">⬆︎ Import progress</button>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+    </div>
+
     <button class="dangerlink" id="btn-reset">Reset all progress…</button>
   </section>
 

@@ -571,6 +571,68 @@ $("#btn-reset").onclick = () => {
   }
 };
 
+/* ---------------- backup / cross-device transfer ---------------- */
+function exportProgress() {
+  const payload = JSON.stringify({ app: "smle-study", v: 1, exported: Date.now(), state: S });
+  const url = URL.createObjectURL(new Blob([payload], { type: "application/json" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `smle-progress-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// merge two saved states; per question the more recently studied record wins,
+// flags are OR'd, counts take the max, and history is unioned by timestamp
+function mergeState(local, incoming) {
+  const out = { q: {}, history: [], settings: local.settings };
+  const ids = new Set([...Object.keys(local.q || {}), ...Object.keys(incoming.q || {})]);
+  for (const id of ids) {
+    const a = (local.q || {})[id], b = (incoming.q || {})[id];
+    if (!a || !b) { out.q[id] = a || b; continue; }
+    const pick = { ...((b.last || 0) > (a.last || 0) ? b : a) };
+    pick.flag = !!(a.flag || b.flag);
+    pick.seen = Math.max(a.seen || 0, b.seen || 0);
+    pick.right = Math.max(a.right || 0, b.right || 0);
+    pick.wrong = Math.max(a.wrong || 0, b.wrong || 0);
+    out.q[id] = pick;
+  }
+  const seen = new Set();
+  out.history = [...(local.history || []), ...(incoming.history || [])]
+    .sort((x, y) => y.ts - x.ts)
+    .filter(h => (seen.has(h.ts) ? false : seen.add(h.ts)))
+    .slice(0, 50);
+  return out;
+}
+
+function importProgress(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    let incoming;
+    try {
+      const parsed = JSON.parse(reader.result);
+      incoming = parsed && parsed.state ? parsed.state : parsed; // accept wrapped or raw
+      if (!incoming || typeof incoming !== "object" || typeof incoming.q !== "object") throw new Error("shape");
+    } catch (e) {
+      alert("Couldn't read that file — pick a progress file exported from this app.");
+      return;
+    }
+    const before = Object.keys(S.q).length;
+    S = Object.assign(defaultState(), { settings: S.settings }, mergeState(S, incoming));
+    save();
+    renderStats();
+    const after = Object.keys(S.q).length;
+    alert(`Progress merged ✓  (${after - before} new question${after - before === 1 ? "" : "s"} added, ${after} total)`);
+  };
+  reader.readAsText(file);
+}
+
+$("#btn-export").onclick = exportProgress;
+$("#btn-import").onclick = () => $("#import-file").click();
+$("#import-file").onchange = e => { if (e.target.files[0]) importProgress(e.target.files[0]); e.target.value = ""; };
+
 // keyboard shortcuts: 1-4 / A-D pick options, Enter = next, F = flag, B = buzzwords
 document.addEventListener("keydown", e => {
   if ($("#view-quiz").hidden || e.metaKey || e.ctrlKey || e.altKey) return;
