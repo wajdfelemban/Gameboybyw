@@ -42,8 +42,7 @@
   --teal-bg: #e9f3f2;
   --teal-ink: #2b5d5d;
 
-  --opt-ok: #35692f;      /* answered-correct card fill (white text) */
-  --opt-no: #a83f3c;      /* answered-wrong card fill (white text) */
+  --expl-ink: #000000;    /* per-option explanation text (black in light) */
 
   --px: "Press Start 2P", monospace;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
@@ -82,8 +81,7 @@
   --teal-bg: #14302f;
   --teal-ink: #7fd0d0;
 
-  --opt-ok: #2c6b3c;
-  --opt-no: #9e3b3f;
+  --expl-ink: #e7eadf;    /* light text in dark mode (black would be unreadable) */
 
   --shadow: 0 2px 10px rgba(0, 0, 0, .45);
 }
@@ -263,17 +261,17 @@ nav { display: flex; align-items: center; gap: .5rem; }
 .opt:hover:not(:disabled) { border-color: var(--pine); }
 .opt .letter { font-weight: 800; color: var(--muted); flex: none; }
 .opt.picked { border-color: var(--pine); background: var(--pine-soft); }
-/* after reveal: correct = solid green card, everything else = solid red card,
-   all text (incl. per-option explanation) in white for legibility */
-.opt.correct { border-color: var(--opt-ok); background: var(--opt-ok); color: #fff; }
-.opt.correct .letter { color: #fff; }
+/* after reveal: correct = pale green card, everything else = pale red card;
+   per-option explanation text in black for a neutral, high-contrast read */
+.opt.correct { border-color: var(--green); background: var(--green-bg); color: var(--green-ink); }
+.opt.correct .letter { color: var(--green); }
 .opt.correct .letter::before { content: "✓  "; }
-.opt:disabled:not(.correct), .opt.xno { border-color: var(--opt-no); background: var(--opt-no); color: #fff; }
-.opt:disabled:not(.correct) .letter, .opt.xno .letter { color: #fff; }
+.opt:disabled:not(.correct), .opt.xno { border-color: var(--red); background: var(--red-bg); color: var(--red-ink); }
+.opt:disabled:not(.correct) .letter, .opt.xno .letter { color: var(--red); }
 .opt:disabled:not(.correct) .letter::before, .opt.xno .letter::before { content: "✗  "; }
-.opt.wrong { box-shadow: 0 0 0 2px var(--opt-no) inset; }
+.opt.wrong { box-shadow: 0 0 0 2px var(--red) inset; }
 .opt:disabled { cursor: default; }
-.opt-expl { display: block; font-size: .86rem; margin-top: .35rem; color: #fff; opacity: .95; line-height: 1.45; font-weight: 400; }
+.opt-expl { display: block; font-size: .86rem; margin-top: .35rem; color: var(--expl-ink); line-height: 1.45; font-weight: 400; }
 
 #feedback { margin-top: 1.1rem; }
 .fb-banner { font-family: var(--px); font-size: .6rem; padding: .8rem .9rem; border-radius: 10px; margin-bottom: .7rem; line-height: 1.6; }
