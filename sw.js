@@ -1,6 +1,6 @@
-/* SMLE Smart Study service worker — offline-first caching.
-   Bump CACHE when any cached asset changes to force an update. */
-const CACHE = "smle-study-v3";
+/* SMLE Smart Study service worker — network-first so updates show up
+   immediately when online, with a cached copy for offline use. */
+const CACHE = "smle-study-v4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -30,19 +30,18 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
-  // cache-first: instant offline loads; fall back to network, then cache the result
+  if (new URL(e.request.url).origin !== location.origin) return; // let cross-origin pass through
+  // network-first: use the latest when online and refresh the cache; fall back
+  // to the cached copy (then index.html) when offline
   e.respondWith(
-    caches.match(e.request).then((hit) => {
-      if (hit) return hit;
-      return fetch(e.request)
-        .then((res) => {
-          if (res.ok && new URL(e.request.url).origin === location.origin) {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(e.request, copy));
-          }
-          return res;
-        })
-        .catch(() => caches.match("./index.html")); // offline navigation fallback
-    })
+    fetch(e.request)
+      .then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
+        return res;
+      })
+      .catch(() => caches.match(e.request).then((hit) => hit || caches.match("./index.html")))
   );
 });

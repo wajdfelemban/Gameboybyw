@@ -1322,6 +1322,13 @@ renderHome();
 /* Register the service worker for offline use. Only works over http(s)
    (GitHub Pages / Firebase / a local server), silently skipped on file://. */
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  // when a new service worker takes over, reload once so the update shows immediately
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshing) return;
+    refreshing = true;
+    location.reload();
+  });
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 }
 </script>
