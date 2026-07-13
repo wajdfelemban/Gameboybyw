@@ -198,6 +198,8 @@ function buildSession() {
     correct: null,
     timeSpent: 0,
     timedOut: false,
+    seen: false,         // has this question been shown yet (timer runs once)
+    answered: false,     // has it been graded (study mode)
   }));
 }
 
@@ -240,9 +242,11 @@ function renderQuestion() {
   buzzBtn.classList.toggle("on", S.settings.buzz && clues);
   $("#btn-flag").classList.toggle("on", !!qsPeek(q.id)?.flag);
   $("#feedback").hidden = true;
+  $("#recall").hidden = true;
   $("#btn-next").hidden = true;
-  $("#btn-skip").hidden = quiz.mode !== "mock";
+  $("#btn-skip").hidden = true;
   $("#btn-skip").disabled = false;
+  $("#btn-prev").hidden = quiz.idx === 0;
 
   const opts = $("#opts");
   opts.innerHTML = "";
@@ -255,7 +259,37 @@ function renderQuestion() {
     opts.appendChild(b);
   });
 
-  startTimer();
+  const firstView = !it.seen;
+  it.seen = true;
+
+  // already-answered study question: show its explanation read-only when revisited
+  if (quiz.mode === "study" && it.answered) {
+    quiz.answered = true;
+    paintReveal(it);
+    $("#recall").hidden = true;
+    $("#btn-next").hidden = false;
+    $("#timer").hidden = true;
+    stopTimer(null);
+    return;
+  }
+  // revisiting a mock question: restore the chosen option (still changeable)
+  if (quiz.mode === "mock" && it.picked !== null) {
+    for (const el of opts.children) el.classList.toggle("picked", +el.dataset.orig === it.picked);
+    $("#btn-next").hidden = false;
+  } else if (quiz.mode === "mock") {
+    $("#btn-skip").hidden = false;
+  }
+
+  // the timer only runs the first time a question is shown, not on revisits
+  if (firstView) startTimer();
+  else { $("#timer").hidden = true; stopTimer(null); }
+}
+
+function prevQuestion() {
+  if (quiz.idx === 0) return;
+  stopTimer(quiz.items[quiz.idx]);
+  quiz.idx--;
+  renderQuestion();
 }
 
 function pickOption(origIdx, btn) {
@@ -277,32 +311,38 @@ function pickOption(origIdx, btn) {
   revealAnswer(it, true);
 }
 
-function revealAnswer(it, withRecall) {
+// paint the revealed state (options + feedback) without grading — reused by
+// live answering and by read-only revisits of an already-answered question
+function paintReveal(it) {
   const q = it.q;
   for (const el of $("#opts").children) {
     const orig = +el.dataset.orig;
     el.disabled = true;
-    if (orig === q.ans) el.classList.add("correct");
-    else if (orig === it.picked) el.classList.add("wrong");
-    // per-option explanation appears after answering
-    if (q.expl[orig]) {
+    el.classList.remove("picked");
+    el.classList.toggle("correct", orig === q.ans);
+    el.classList.toggle("wrong", orig !== q.ans && orig === it.picked);
+    if (q.expl[orig] && !el.querySelector(".opt-expl")) {
       const ex = document.createElement("span");
       ex.className = "opt-expl";
       ex.textContent = q.expl[orig];
       el.querySelector(".opt-body").appendChild(ex);
     }
   }
-  const fb = $("#feedback");
-  fb.hidden = false;
   const banner = $("#fb-banner");
   if (it.picked === null) { banner.className = "fb-banner no"; banner.textContent = "TIME'S UP — COUNTED AS WRONG"; }
   else if (it.correct) { banner.className = "fb-banner ok"; banner.textContent = "✓ CORRECT!"; }
   else { banner.className = "fb-banner no"; banner.textContent = "✗ INCORRECT"; }
   $("#fb-oneline").textContent = q.one ? "» " + q.one : "";
   $("#fb-hy").innerHTML = q.hy ? "<b>★ HIGH YIELD</b>" + esc(q.hy) : "";
+  $("#feedback").hidden = false;
+}
+
+function revealAnswer(it, withRecall) {
+  paintReveal(it);
   $("#recall").hidden = !withRecall || !it.correct; // self-grade only when correct; wrong resets automatically
   if (!withRecall || !it.correct) {
-    grade(q.id, !!it.correct, null);
+    grade(it.q.id, !!it.correct, null);
+    it.answered = true;
     $("#btn-next").hidden = false;
   }
   $("#btn-skip").hidden = true;
@@ -311,6 +351,7 @@ function revealAnswer(it, withRecall) {
 function selfGrade(g) {
   const it = quiz.items[quiz.idx];
   grade(it.q.id, true, g);
+  it.answered = true;
   $("#recall").hidden = true;
   nextQuestion();
 }
@@ -560,8 +601,8 @@ $("#btn-quit").onclick = () => {
     stopTimer(null); renderHome();
   }
 };
+$("#btn-prev").onclick = prevQuestion;
 $("#btn-next").onclick = () => {
-  const it = quiz.items[quiz.idx];
   if (quiz.mode === "study" && !$("#recall").hidden) return; // must self-grade first
   nextQuestion();
 };
@@ -575,7 +616,7 @@ $("#recall").onclick = e => { const b = e.target.closest("button[data-grade]"); 
 $("#btn-res-home").onclick = renderHome;
 $("#btn-res-retry").onclick = () => {
   const wrongIds = quiz.items.filter(it => !it.correct).map(it => it.q.id);
-  quiz.items = wrongIds.map(id => ({ q: byId.get(id), order: shuffle([0, 1, 2, 3]), picked: null, correct: null, timeSpent: 0, timedOut: false }));
+  quiz.items = wrongIds.map(id => ({ q: byId.get(id), order: shuffle([0, 1, 2, 3]), picked: null, correct: null, timeSpent: 0, timedOut: false, seen: false, answered: false }));
   quiz.idx = 0; quiz.mode = "study"; quiz.startedAt = Date.now();
   show("quiz"); renderQuestion();
 };
@@ -589,17 +630,62 @@ $("#btn-reset").onclick = () => {
   }
 };
 
-/* ---------------- backup / cross-device transfer ---------------- */
+/* ---------------- backup / cross-device transfer (copy & paste) ---------------- */
+// unicode-safe base64 so the code stays a single easy-to-paste blob
+const b64encode = s => btoa(unescape(encodeURIComponent(s)));
+const b64decode = s => decodeURIComponent(escape(atob(s)));
+const PROGRESS_PREFIX = "SMLE1:";
+
+function openModalHTML(html) { $("#modal-body").innerHTML = html; $("#modal").hidden = false; }
+
 function exportProgress() {
-  const payload = JSON.stringify({ app: "smle-study", v: 1, exported: Date.now(), state: S });
-  const url = URL.createObjectURL(new Blob([payload], { type: "application/json" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `smle-progress-${new Date().toISOString().slice(0, 10)}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  const code = PROGRESS_PREFIX + b64encode(JSON.stringify({ app: "smle-study", v: 1, exported: Date.now(), state: S }));
+  openModalHTML(`
+    <h3 style="margin-top:0">Copy your progress</h3>
+    <p class="hint">Copy this code, then on your other device open <b>Stats → Paste progress</b> and paste it.</p>
+    <textarea id="exp-area" class="code-area" readonly>${esc(code)}</textarea>
+    <button class="bigbtn" id="exp-copy">Copy to clipboard</button>
+    <p class="hint" id="exp-done" hidden>Copied ✓ — now paste it on your other device.</p>`);
+  const area = $("#exp-area");
+  $("#exp-copy").onclick = async () => {
+    area.focus(); area.select();
+    try { await navigator.clipboard.writeText(code); }
+    catch (e) { try { document.execCommand("copy"); } catch (_) {} }
+    $("#exp-done").hidden = false;
+  };
+}
+
+function importProgress() {
+  openModalHTML(`
+    <h3 style="margin-top:0">Paste progress</h3>
+    <p class="hint">Paste the code from your other device and press Merge. Nothing is lost — the newer progress per question wins.</p>
+    <textarea id="imp-area" class="code-area" placeholder="Paste your SMLE progress code here…"></textarea>
+    <button class="bigbtn" id="imp-go">Merge</button>
+    <p class="hint err" id="imp-err" hidden></p>`);
+  $("#imp-go").onclick = () => {
+    const raw = $("#imp-area").value.trim();
+    let incoming;
+    try {
+      let json = raw;
+      if (raw.startsWith(PROGRESS_PREFIX)) json = b64decode(raw.slice(PROGRESS_PREFIX.length));
+      else if (raw && raw[0] !== "{") json = b64decode(raw); // tolerate a bare base64 paste
+      const parsed = JSON.parse(json);
+      incoming = parsed && parsed.state ? parsed.state : parsed; // wrapped or raw
+      if (!incoming || typeof incoming.q !== "object") throw new Error("shape");
+    } catch (e) {
+      const err = $("#imp-err");
+      err.textContent = "That code didn't look right — copy it again from the other device.";
+      err.hidden = false;
+      return;
+    }
+    const before = Object.keys(S.q).length;
+    S = Object.assign(defaultState(), { settings: S.settings }, mergeState(S, incoming));
+    save();
+    const after = Object.keys(S.q).length;
+    $("#modal").hidden = true;
+    renderStats();
+    alert(`Progress merged ✓  (${after - before} new question${after - before === 1 ? "" : "s"} added, ${after} total)`);
+  };
 }
 
 // merge two saved states; per question the more recently studied record wins,
@@ -625,31 +711,8 @@ function mergeState(local, incoming) {
   return out;
 }
 
-function importProgress(file) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    let incoming;
-    try {
-      const parsed = JSON.parse(reader.result);
-      incoming = parsed && parsed.state ? parsed.state : parsed; // accept wrapped or raw
-      if (!incoming || typeof incoming !== "object" || typeof incoming.q !== "object") throw new Error("shape");
-    } catch (e) {
-      alert("Couldn't read that file — pick a progress file exported from this app.");
-      return;
-    }
-    const before = Object.keys(S.q).length;
-    S = Object.assign(defaultState(), { settings: S.settings }, mergeState(S, incoming));
-    save();
-    renderStats();
-    const after = Object.keys(S.q).length;
-    alert(`Progress merged ✓  (${after - before} new question${after - before === 1 ? "" : "s"} added, ${after} total)`);
-  };
-  reader.readAsText(file);
-}
-
 $("#btn-export").onclick = exportProgress;
-$("#btn-import").onclick = () => $("#import-file").click();
-$("#import-file").onchange = e => { if (e.target.files[0]) importProgress(e.target.files[0]); e.target.value = ""; };
+$("#btn-import").onclick = importProgress;
 
 // keyboard shortcuts: 1-4 / A-D pick options, Enter = next, F = flag, B = buzzwords
 document.addEventListener("keydown", e => {

@@ -156,6 +156,7 @@
     </div>
 
     <div class="quiz-bottom">
+      <button class="bigbtn ghost" id="btn-prev" hidden>← Back</button>
       <button class="bigbtn" id="btn-next" hidden>NEXT →</button>
       <button class="bigbtn ghost" id="btn-skip" hidden>SKIP (NO ANSWER) →</button>
     </div>
@@ -191,11 +192,10 @@
     <div id="stats-history" class="history"></div>
 
     <h3>Backup &amp; move between devices</h3>
-    <p class="hint">Export saves your progress to a file. Import merges a file from another device — nothing is lost, the newer progress wins per question.</p>
+    <p class="hint">Copy shows a code you paste into the app on another device. Paste merges a code from another device — nothing is lost, the newer progress wins per question.</p>
     <div class="data-tools">
-      <button class="bigbtn ghost" id="btn-export">⬇︎ Export progress</button>
-      <button class="bigbtn ghost" id="btn-import">⬆︎ Import progress</button>
-      <input type="file" id="import-file" accept="application/json,.json" hidden>
+      <button class="bigbtn ghost" id="btn-export">⧉ Copy my progress</button>
+      <button class="bigbtn ghost" id="btn-import">⤵ Paste progress</button>
     </div>
 
     <button class="dangerlink" id="btn-reset">Reset all progress…</button>
