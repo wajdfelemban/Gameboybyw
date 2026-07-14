@@ -693,12 +693,16 @@ function importProgress() {
     <button class="bigbtn" id="imp-go">Merge</button>
     <p class="hint err" id="imp-err" hidden></p>`);
   $("#imp-go").onclick = () => {
-    const raw = $("#imp-area").value.trim();
+    // strip the prefix and ALL whitespace/line breaks that copy-paste (messaging
+    // apps, email wrapping) can inject into the base64 — none belongs in it
+    let raw = $("#imp-area").value.trim();
+    const pfx = raw.indexOf(PROGRESS_PREFIX);
+    if (pfx !== -1) raw = raw.slice(pfx + PROGRESS_PREFIX.length);
     let incoming;
     try {
-      let json = raw;
-      if (raw.startsWith(PROGRESS_PREFIX)) json = b64decode(raw.slice(PROGRESS_PREFIX.length));
-      else if (raw && raw[0] !== "{") json = b64decode(raw); // tolerate a bare base64 paste
+      let json;
+      if (raw && raw.trim()[0] === "{") json = raw; // raw JSON paste
+      else json = b64decode(raw.replace(/\s+/g, "")); // base64 (with prefix already removed)
       const parsed = JSON.parse(json);
       incoming = parsed && parsed.state ? parsed.state : parsed; // wrapped or raw
       if (!incoming || typeof incoming.q !== "object") throw new Error("shape");

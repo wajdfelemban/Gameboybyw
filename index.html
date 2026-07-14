@@ -221,6 +221,9 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   let refreshing = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (refreshing) return;
+    // don't reload mid-task (e.g. while pasting progress) — it'd wipe the dialog
+    const modal = document.getElementById("modal");
+    if (modal && !modal.hidden) return;
     refreshing = true;
     location.reload();
   });
