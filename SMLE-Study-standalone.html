@@ -344,6 +344,9 @@ nav { display: flex; align-items: center; gap: .5rem; }
 .history { display: flex; flex-direction: column; gap: .45rem; }
 .hist-row { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: .55rem .9rem; display: flex; justify-content: space-between; gap: .8rem; font-size: .86rem; flex-wrap: wrap; }
 .hist-row .muted { color: var(--muted); }
+.cloud { margin-bottom: 1.2rem; padding-bottom: 1.2rem; border-bottom: 1px solid var(--line); }
+.cloud h3 { margin-top: .5rem; }
+.cloud .hint { margin-bottom: .6rem; display: block; }
 .data-tools { display: flex; gap: .6rem; flex-wrap: wrap; }
 .data-tools .bigbtn { flex: 1; min-width: 180px; margin-top: 0; }
 .dangerlink { display: block; font-family: var(--mono); font-size: .82rem; color: var(--red-ink); margin-top: 2rem; text-decoration: underline; }
@@ -562,6 +565,15 @@ nav { display: flex; align-items: center; gap: .5rem; }
     <h3>Session history</h3>
     <div id="stats-history" class="history"></div>
 
+    <div class="cloud" id="cloud-box" hidden>
+      <h3>☁️ Cloud sync</h3>
+      <p class="hint" id="cloud-status">Sign in to sync your progress across all your devices.</p>
+      <div class="data-tools">
+        <button class="bigbtn" id="btn-signin">Sign in with Google</button>
+        <button class="bigbtn ghost" id="btn-signout" hidden>Sign out</button>
+      </div>
+    </div>
+
     <h3>Backup &amp; move between devices</h3>
     <p class="hint">Copy shows a code you paste into the app on another device. Paste merges a code from another device — nothing is lost, the newer progress wins per question.</p>
     <div class="data-tools">
@@ -608,7 +620,12 @@ try {
   if (raw) S = Object.assign(defaultState(), JSON.parse(raw));
 } catch (e) { /* corrupted store — start fresh */ }
 
-const save = () => localStorage.setItem(STORE_KEY, JSON.stringify(S));
+const saveLocal = () => localStorage.setItem(STORE_KEY, JSON.stringify(S));
+const save = () => {
+  saveLocal();
+  // notify the optional cloud-sync layer (Firebase) of a local change
+  if (window.__smle && typeof window.__smle.onChange === "function") window.__smle.onChange();
+};
 const qs = id => S.q[id] || (S.q[id] = { box: 0, due: 0, seen: 0, right: 0, wrong: 0, streak: 0, flag: false, lastWrong: false, last: 0 });
 const qsPeek = id => S.q[id]; // may be undefined (unseen)
 
@@ -1350,10 +1367,26 @@ document.addEventListener("keydown", e => {
   else if (k === "b") $("#btn-buzz").click();
 });
 
+/* ---- bridge for the optional cloud-sync layer (js/firebase-sync.js) ---- */
+window.__smle = {
+  getState: () => S,
+  // merge a state coming from the cloud / another device into local, save
+  // (WITHOUT re-triggering a cloud push), refresh the visible view, return merged
+  mergeIncoming(incoming) {
+    S = Object.assign(defaultState(), { settings: S.settings }, mergeState(S, incoming));
+    saveLocal();
+    if (!$("#view-home").hidden) renderHome();
+    else if (!$("#view-stats").hidden) renderStats();
+    return S;
+  },
+  onChange: null, // set by the cloud layer to receive debounced push notifications
+};
+
 renderHome();
 })();
 
 </script>
+
 <script>
 /* Register the service worker for offline use. Only works over http(s)
    (GitHub Pages / Firebase / a local server), silently skipped on file://. */

@@ -17,6 +17,7 @@ body = html[html.index('<body>')+len('<body>'):html.index('</body>')]
 # strip the external script tags and the SW-registration inline script
 body = body.replace('<script src="js/data.js"></script>', '')
 body = body.replace('<script src="js/app.js"></script>', '')
+body = body.replace('<script type="module" src="js/firebase-sync.js"></script>', '')  # artifact CSP blocks CDNs
 body = re.sub(r'<script>\s*/\* Register the service worker.*?</script>', '', body, flags=re.S)
 fragment = (
     '<title>SMLE Smart Study</title>\n'

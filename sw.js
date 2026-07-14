@@ -1,12 +1,13 @@
 /* SMLE Smart Study service worker — network-first so updates show up
    immediately when online, with a cached copy for offline use. */
-const CACHE = "smle-study-v4";
+const CACHE = "smle-study-v5";
 const ASSETS = [
   "./",
   "./index.html",
   "./css/style.css",
   "./js/data.js",
   "./js/app.js",
+  "./js/firebase-sync.js",
   "./assets/fonts/pressstart2p-latin.woff2",
   "./manifest.json",
   "./icons/icon-192.png",

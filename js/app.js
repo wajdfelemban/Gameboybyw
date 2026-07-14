@@ -19,7 +19,12 @@ try {
   if (raw) S = Object.assign(defaultState(), JSON.parse(raw));
 } catch (e) { /* corrupted store — start fresh */ }
 
-const save = () => localStorage.setItem(STORE_KEY, JSON.stringify(S));
+const saveLocal = () => localStorage.setItem(STORE_KEY, JSON.stringify(S));
+const save = () => {
+  saveLocal();
+  // notify the optional cloud-sync layer (Firebase) of a local change
+  if (window.__smle && typeof window.__smle.onChange === "function") window.__smle.onChange();
+};
 const qs = id => S.q[id] || (S.q[id] = { box: 0, due: 0, seen: 0, right: 0, wrong: 0, streak: 0, flag: false, lastWrong: false, last: 0 });
 const qsPeek = id => S.q[id]; // may be undefined (unseen)
 
@@ -760,6 +765,21 @@ document.addEventListener("keydown", e => {
   else if (k === "f") $("#btn-flag").click();
   else if (k === "b") $("#btn-buzz").click();
 });
+
+/* ---- bridge for the optional cloud-sync layer (js/firebase-sync.js) ---- */
+window.__smle = {
+  getState: () => S,
+  // merge a state coming from the cloud / another device into local, save
+  // (WITHOUT re-triggering a cloud push), refresh the visible view, return merged
+  mergeIncoming(incoming) {
+    S = Object.assign(defaultState(), { settings: S.settings }, mergeState(S, incoming));
+    saveLocal();
+    if (!$("#view-home").hidden) renderHome();
+    else if (!$("#view-stats").hidden) renderStats();
+    return S;
+  },
+  onChange: null, // set by the cloud layer to receive debounced push notifications
+};
 
 renderHome();
 })();

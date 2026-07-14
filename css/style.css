@@ -337,6 +337,9 @@ nav { display: flex; align-items: center; gap: .5rem; }
 .history { display: flex; flex-direction: column; gap: .45rem; }
 .hist-row { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: .55rem .9rem; display: flex; justify-content: space-between; gap: .8rem; font-size: .86rem; flex-wrap: wrap; }
 .hist-row .muted { color: var(--muted); }
+.cloud { margin-bottom: 1.2rem; padding-bottom: 1.2rem; border-bottom: 1px solid var(--line); }
+.cloud h3 { margin-top: .5rem; }
+.cloud .hint { margin-bottom: .6rem; display: block; }
 .data-tools { display: flex; gap: .6rem; flex-wrap: wrap; }
 .data-tools .bigbtn { flex: 1; min-width: 180px; margin-top: 0; }
 .dangerlink { display: block; font-family: var(--mono); font-size: .82rem; color: var(--red-ink); margin-top: 2rem; text-decoration: underline; }

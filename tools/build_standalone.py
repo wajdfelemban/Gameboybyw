@@ -27,6 +27,8 @@ def build() -> Path:
     html = html.replace('<link rel="stylesheet" href="css/style.css">', f"<style>\n{css}\n</style>")
     html = html.replace('<script src="js/data.js"></script>', f"<script>\n{data_js}\n</script>")
     html = html.replace('<script src="js/app.js"></script>', f"<script>\n{app_js}\n</script>")
+    # cloud sync needs a CDN + http(s) origin — drop it from the offline bundle
+    html = html.replace('<script type="module" src="js/firebase-sync.js"></script>', "")
 
     out = ROOT / "SMLE-Study-standalone.html"
     out.write_text(html, encoding="utf-8")

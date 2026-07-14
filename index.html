@@ -191,6 +191,15 @@
     <h3>Session history</h3>
     <div id="stats-history" class="history"></div>
 
+    <div class="cloud" id="cloud-box" hidden>
+      <h3>☁️ Cloud sync</h3>
+      <p class="hint" id="cloud-status">Sign in to sync your progress across all your devices.</p>
+      <div class="data-tools">
+        <button class="bigbtn" id="btn-signin">Sign in with Google</button>
+        <button class="bigbtn ghost" id="btn-signout" hidden>Sign out</button>
+      </div>
+    </div>
+
     <h3>Backup &amp; move between devices</h3>
     <p class="hint">Copy shows a code you paste into the app on another device. Paste merges a code from another device — nothing is lost, the newer progress wins per question.</p>
     <div class="data-tools">
@@ -213,6 +222,7 @@
 
 <script src="js/data.js"></script>
 <script src="js/app.js"></script>
+<script type="module" src="js/firebase-sync.js"></script>
 <script>
 /* Register the service worker for offline use. Only works over http(s)
    (GitHub Pages / Firebase / a local server), silently skipped on file://. */
