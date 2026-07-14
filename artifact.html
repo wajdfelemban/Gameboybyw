@@ -360,6 +360,8 @@ nav { display: flex; align-items: center; gap: .5rem; }
   margin-bottom: .8rem;
 }
 .code-area:focus { outline: 2px solid var(--pine-ink); outline-offset: 1px; }
+.modal-btns { display: flex; gap: .6rem; margin-bottom: .7rem; }
+.modal-btns .bigbtn { flex: 1; margin-top: 0; }
 
 @media (max-width: 560px) {
   .recall-btns { grid-template-columns: repeat(2, 1fr); }
@@ -1216,21 +1218,51 @@ const PROGRESS_PREFIX = "SMLE1:";
 
 function openModalHTML(html) { $("#modal-body").innerHTML = html; $("#modal").hidden = false; }
 
+// copy the FULL text reliably across browsers/phones: async Clipboard API first,
+// then an execCommand fallback that selects the whole value (readonly textareas
+// can't be selected programmatically on iOS, so drop readonly during the copy)
+async function copyText(text, area) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) { /* fall through */ }
+  try {
+    const ro = area.readOnly;
+    area.readOnly = false;
+    area.focus();
+    area.setSelectionRange(0, text.length); // whole value, not just what's visible
+    const ok = document.execCommand("copy");
+    area.readOnly = ro;
+    area.setSelectionRange(0, 0);
+    area.blur();
+    return ok;
+  } catch (e) { return false; }
+}
+
 function exportProgress() {
   const code = PROGRESS_PREFIX + b64encode(JSON.stringify({ app: "smle-study", v: 1, exported: Date.now(), state: S }));
+  const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
   openModalHTML(`
     <h3 style="margin-top:0">Copy your progress</h3>
-    <p class="hint">Copy this code, then on your other device open <b>Stats → Paste progress</b> and paste it.</p>
+    <p class="hint">Copy this whole code, then on your other device open <b>Stats → Paste progress</b> and paste it. On a phone, <b>Share</b> is easiest.</p>
     <textarea id="exp-area" class="code-area" readonly>${esc(code)}</textarea>
-    <button class="bigbtn" id="exp-copy">Copy to clipboard</button>
-    <p class="hint" id="exp-done" hidden>Copied ✓ — now paste it on your other device.</p>`);
+    <div class="modal-btns">
+      <button class="bigbtn" id="exp-copy">Copy to clipboard</button>
+      ${canShare ? '<button class="bigbtn ghost" id="exp-share">Share…</button>' : ""}
+    </div>
+    <p class="hint" id="exp-done" hidden></p>`);
   const area = $("#exp-area");
   $("#exp-copy").onclick = async () => {
-    area.focus(); area.select();
-    try { await navigator.clipboard.writeText(code); }
-    catch (e) { try { document.execCommand("copy"); } catch (_) {} }
-    $("#exp-done").hidden = false;
+    const ok = await copyText(code, area);
+    const done = $("#exp-done");
+    done.hidden = false;
+    done.textContent = ok
+      ? "Copied ✓ — paste it on your other device."
+      : "Couldn't auto-copy — tap the code, Select All, then Copy.";
   };
+  if (canShare) $("#exp-share").onclick = () => navigator.share({ title: "SMLE progress", text: code }).catch(() => {});
 }
 
 function importProgress() {
