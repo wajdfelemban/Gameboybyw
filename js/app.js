@@ -11,7 +11,7 @@ const MASTER_BOX = 5; // box >= this counts as "mastered"
 const STORE_KEY = "smle_study_v1";
 
 /* ---------------- persistent state ---------------- */
-const defaultState = () => ({ q: {}, history: [], settings: { buzz: false, theme: null } });
+const defaultState = () => ({ q: {}, history: [], settings: { buzz: false, theme: null }, notes: {} });
 
 let S = defaultState();
 try {
@@ -116,7 +116,38 @@ function renderHome() {
     <div class="stat"><b>${total ? pct(right, total) + "%" : "—"}</b><small>overall accuracy</small></div>`;
   $("#flagged-desc").textContent = flagged ? `${flagged} flagged question${flagged > 1 ? "s" : ""} waiting.` : "Review the questions you marked.";
   $("#weak-desc").textContent = wrongPool ? `${wrongPool} questions you last got wrong.` : "Drill questions you've gotten wrong.";
+  // Today's Review card: date + how many spaced-repetition questions are due
+  const now = new Date();
+  $("#due-day").textContent = now.getDate();
+  $("#due-mon").textContent = now.toLocaleDateString(undefined, { month: "short" });
+  $("#due-desc").textContent = due
+    ? `${due} question${due > 1 ? "s" : ""} due for review today · tap to start`
+    : "Nothing due right now — great job! New reviews appear as you study.";
+  $("#btn-due").classList.toggle("empty", !due);
   show("home");
+}
+
+// questions whose spaced-repetition review has come due (today or overdue)
+function dueQuestions() {
+  const now = Date.now();
+  return SMLE_DATA
+    .filter(q => { const st = qsPeek(q.id); return st && st.seen > 0 && st.due <= now; })
+    .sort((a, b) => qs(a.id).due - qs(b.id).due); // most overdue first
+}
+
+function startDueReview() {
+  const due = dueQuestions();
+  if (!due.length) {
+    alert("No questions are due for review right now 🎉\nStudy some new questions and they'll come back here on their schedule.");
+    return;
+  }
+  quiz.items = due.map(q => ({ q, order: shuffle([0, 1, 2, 3]), picked: null, correct: null, timeSpent: 0, timedOut: false, seen: false, answered: false }));
+  quiz.idx = 0;
+  quiz.mode = "study";
+  quiz.perQ = setup.timer;
+  quiz.startedAt = Date.now();
+  show("quiz");
+  renderQuestion();
 }
 
 /* ================= SETUP ================= */
@@ -339,6 +370,9 @@ function paintReveal(it) {
   else { banner.className = "fb-banner no"; banner.textContent = "✗ INCORRECT"; }
   $("#fb-oneline").textContent = q.one ? "» " + q.one : "";
   $("#fb-hy").innerHTML = q.hy ? "<b>★ HIGH YIELD</b>" + esc(q.hy) : "";
+  const note = $("#q-note");
+  note.value = getNote(q.id);
+  note.dataset.qid = q.id;
   $("#feedback").hidden = false;
 }
 
@@ -479,7 +513,11 @@ function openReview(it) {
     <div class="q-text q-card show-buzz" style="box-shadow:none;border:none;padding:0">${renderQ(q.q, q.buzz)}</div>
     <div class="opts" style="margin-top:.8rem">${opts}</div>
     ${q.one ? `<div class="fb-oneline" style="margin-top:.9rem">» ${esc(q.one)}</div>` : ""}
-    ${q.hy ? `<div class="fb-hy"><b>★ HIGH YIELD</b>${esc(q.hy)}</div>` : ""}`;
+    ${q.hy ? `<div class="fb-hy"><b>★ HIGH YIELD</b>${esc(q.hy)}</div>` : ""}
+    <div class="fb-note">
+      <label for="modal-note">📝 My note</label>
+      <textarea id="modal-note" placeholder="Write your own note for this question… (saved automatically)">${esc(getNote(q.id))}</textarea>
+    </div>`;
   $("#modal-flag").onclick = e => {
     const s = qs(q.id);
     s.flag = !s.flag;
@@ -487,6 +525,10 @@ function openReview(it) {
     e.target.className = "toolbtn" + (s.flag ? " on" : "");
     e.target.textContent = "⚑ " + (s.flag ? "Flagged" : "Flag");
   };
+  let mNoteTimer = null;
+  const mNote = $("#modal-note");
+  mNote.addEventListener("input", () => { clearTimeout(mNoteTimer); mNoteTimer = setTimeout(() => setNote(q.id, mNote.value), 500); });
+  mNote.addEventListener("blur", () => { clearTimeout(mNoteTimer); setNote(q.id, mNote.value); });
   $("#modal").hidden = false;
 }
 
@@ -572,6 +614,7 @@ applyTheme();
 
 $("#btn-home").onclick = renderHome;
 $("#btn-stats").onclick = renderStats;
+$("#btn-due").onclick = startDueReview;
 $("#btn-study").onclick = () => openSetup("study");
 $("#btn-mock").onclick = () => openSetup("mock");
 $("#btn-flagged").onclick = () => openSetup("study", "flag");
@@ -617,6 +660,19 @@ $("#btn-skip").onclick = () => { // mock only: proceed without answering
   nextQuestion();
 };
 $("#recall").onclick = e => { const b = e.target.closest("button[data-grade]"); if (b) selfGrade(b.dataset.grade); };
+
+// per-question note: autosave while typing (debounced) and on blur
+let noteTimer = null;
+$("#q-note").addEventListener("input", e => {
+  const id = +e.target.dataset.qid;
+  if (!id) return;
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(() => setNote(id, e.target.value), 500);
+});
+$("#q-note").addEventListener("blur", e => {
+  const id = +e.target.dataset.qid;
+  if (id) { clearTimeout(noteTimer); setNote(id, e.target.value); }
+});
 
 $("#btn-res-home").onclick = renderHome;
 $("#btn-res-retry").onclick = () => {
@@ -747,7 +803,24 @@ function mergeState(local, incoming) {
     .sort((x, y) => y.ts - x.ts)
     .filter(h => (seen.has(h.ts) ? false : seen.add(h.ts)))
     .slice(0, 50);
+  // notes: keep the most recently edited note per question
+  out.notes = {};
+  const nids = new Set([...Object.keys(local.notes || {}), ...Object.keys(incoming.notes || {})]);
+  for (const id of nids) {
+    const a = (local.notes || {})[id], b = (incoming.notes || {})[id];
+    out.notes[id] = !a ? b : !b ? a : ((b.ts || 0) > (a.ts || 0) ? b : a);
+  }
   return out;
+}
+
+/* ---------------- per-question notes ---------------- */
+const getNote = id => (S.notes && S.notes[id] && S.notes[id].text) || "";
+function setNote(id, text) {
+  if (!S.notes) S.notes = {};
+  const t = (text || "").trim();
+  if (t) S.notes[id] = { text: t, ts: Date.now() };
+  else delete S.notes[id];
+  save();
 }
 
 $("#btn-export").onclick = exportProgress;

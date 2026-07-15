@@ -155,6 +155,28 @@ nav { display: flex; align-items: center; gap: .5rem; }
 .stat.hot b { color: var(--red-ink); }
 .stat.good b { color: var(--green-ink); }
 
+/* Today's Review card */
+.due-card {
+  display: flex; align-items: center; gap: 1rem; width: 100%; text-align: left;
+  background: var(--pine); color: #fff; border: none; border-radius: var(--radius);
+  padding: 1rem 1.1rem; margin-bottom: 1rem; box-shadow: 0 4px 14px rgba(30, 51, 35, .3);
+  transition: transform .08s;
+}
+.due-card:hover { transform: translateY(-2px); }
+.due-card:active { transform: translateY(0); }
+.due-cal {
+  flex: none; width: 52px; height: 56px; border-radius: 10px; background: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
+}
+.due-cal b { font-family: var(--px); font-size: 1.05rem; color: var(--pine); }
+.due-cal small { font-family: var(--px); font-size: .4rem; color: var(--red); text-transform: uppercase; margin-top: .35rem; letter-spacing: .05em; }
+.due-body { flex: 1; display: flex; flex-direction: column; gap: .2rem; }
+.due-title { font-family: var(--px); font-size: .68rem; color: var(--title); text-transform: uppercase; line-height: 1.5; }
+.due-desc { font-family: var(--mono); font-size: .86rem; color: #c4d3a8; }
+.due-go { flex: none; font-size: 1.1rem; color: var(--title); }
+.due-card.empty { opacity: .8; }
+.due-card.empty .due-cal small { color: var(--muted); }
+
 .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: .8rem; }
 .action-card {
   display: flex; gap: .9rem; align-items: center; text-align: left;
@@ -291,6 +313,15 @@ nav { display: flex; align-items: center; gap: .5rem; }
   padding: .7rem .9rem; font-size: .9rem; margin-bottom: .7rem; line-height: 1.5;
 }
 .fb-hy b { display: block; font-family: var(--px); font-size: .48rem; color: var(--teal-ink); margin-bottom: .4rem; letter-spacing: .08em; }
+.fb-note { margin-bottom: .7rem; }
+.fb-note label { display: block; font-family: var(--px); font-size: .48rem; color: var(--muted); letter-spacing: .06em; margin-bottom: .4rem; text-transform: uppercase; }
+.fb-note textarea {
+  width: 100%; min-height: 64px; resize: vertical; display: block;
+  font-family: var(--sans); font-size: .95rem; line-height: 1.4;
+  padding: .55rem .7rem; border: 1.5px solid var(--line); border-radius: 10px;
+  background: var(--card); color: var(--ink);
+}
+.fb-note textarea:focus { outline: 2px solid var(--pine-ink); outline-offset: 1px; border-color: var(--pine-ink); }
 .recall p { font-family: var(--px); font-size: .45rem; color: var(--muted); margin-bottom: .55rem; letter-spacing: .05em; }
 .recall-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; }
 .recall-btns button {
@@ -419,6 +450,15 @@ nav { display: flex; align-items: center; gap: .5rem; }
 
     <div class="stat-grid" id="home-stats"></div>
 
+    <button class="due-card" id="btn-due">
+      <span class="due-cal"><b id="due-day">–</b><small id="due-mon"></small></span>
+      <span class="due-body">
+        <span class="due-title">Today's Review</span>
+        <span class="due-desc" id="due-desc">Your questions due for review today.</span>
+      </span>
+      <span class="due-go">▶</span>
+    </button>
+
     <div class="action-grid">
       <button class="action-card" id="btn-study">
         <span class="gb-key key-a">A</span>
@@ -517,6 +557,10 @@ nav { display: flex; align-items: center; gap: .5rem; }
         <div class="fb-banner" id="fb-banner"></div>
         <div class="fb-oneline" id="fb-oneline"></div>
         <div class="fb-hy" id="fb-hy"></div>
+        <div class="fb-note">
+          <label for="q-note">📝 My note</label>
+          <textarea id="q-note" placeholder="Write your own note for this question… (saved automatically)"></textarea>
+        </div>
         <div class="recall" id="recall">
           <p>HOW WELL DID YOU KNOW IT?</p>
           <div class="recall-btns">
@@ -612,7 +656,7 @@ const MASTER_BOX = 5; // box >= this counts as "mastered"
 const STORE_KEY = "smle_study_v1";
 
 /* ---------------- persistent state ---------------- */
-const defaultState = () => ({ q: {}, history: [], settings: { buzz: false, theme: null } });
+const defaultState = () => ({ q: {}, history: [], settings: { buzz: false, theme: null }, notes: {} });
 
 let S = defaultState();
 try {
@@ -717,7 +761,38 @@ function renderHome() {
     <div class="stat"><b>${total ? pct(right, total) + "%" : "—"}</b><small>overall accuracy</small></div>`;
   $("#flagged-desc").textContent = flagged ? `${flagged} flagged question${flagged > 1 ? "s" : ""} waiting.` : "Review the questions you marked.";
   $("#weak-desc").textContent = wrongPool ? `${wrongPool} questions you last got wrong.` : "Drill questions you've gotten wrong.";
+  // Today's Review card: date + how many spaced-repetition questions are due
+  const now = new Date();
+  $("#due-day").textContent = now.getDate();
+  $("#due-mon").textContent = now.toLocaleDateString(undefined, { month: "short" });
+  $("#due-desc").textContent = due
+    ? `${due} question${due > 1 ? "s" : ""} due for review today · tap to start`
+    : "Nothing due right now — great job! New reviews appear as you study.";
+  $("#btn-due").classList.toggle("empty", !due);
   show("home");
+}
+
+// questions whose spaced-repetition review has come due (today or overdue)
+function dueQuestions() {
+  const now = Date.now();
+  return SMLE_DATA
+    .filter(q => { const st = qsPeek(q.id); return st && st.seen > 0 && st.due <= now; })
+    .sort((a, b) => qs(a.id).due - qs(b.id).due); // most overdue first
+}
+
+function startDueReview() {
+  const due = dueQuestions();
+  if (!due.length) {
+    alert("No questions are due for review right now 🎉\nStudy some new questions and they'll come back here on their schedule.");
+    return;
+  }
+  quiz.items = due.map(q => ({ q, order: shuffle([0, 1, 2, 3]), picked: null, correct: null, timeSpent: 0, timedOut: false, seen: false, answered: false }));
+  quiz.idx = 0;
+  quiz.mode = "study";
+  quiz.perQ = setup.timer;
+  quiz.startedAt = Date.now();
+  show("quiz");
+  renderQuestion();
 }
 
 /* ================= SETUP ================= */
@@ -940,6 +1015,9 @@ function paintReveal(it) {
   else { banner.className = "fb-banner no"; banner.textContent = "✗ INCORRECT"; }
   $("#fb-oneline").textContent = q.one ? "» " + q.one : "";
   $("#fb-hy").innerHTML = q.hy ? "<b>★ HIGH YIELD</b>" + esc(q.hy) : "";
+  const note = $("#q-note");
+  note.value = getNote(q.id);
+  note.dataset.qid = q.id;
   $("#feedback").hidden = false;
 }
 
@@ -1080,7 +1158,11 @@ function openReview(it) {
     <div class="q-text q-card show-buzz" style="box-shadow:none;border:none;padding:0">${renderQ(q.q, q.buzz)}</div>
     <div class="opts" style="margin-top:.8rem">${opts}</div>
     ${q.one ? `<div class="fb-oneline" style="margin-top:.9rem">» ${esc(q.one)}</div>` : ""}
-    ${q.hy ? `<div class="fb-hy"><b>★ HIGH YIELD</b>${esc(q.hy)}</div>` : ""}`;
+    ${q.hy ? `<div class="fb-hy"><b>★ HIGH YIELD</b>${esc(q.hy)}</div>` : ""}
+    <div class="fb-note">
+      <label for="modal-note">📝 My note</label>
+      <textarea id="modal-note" placeholder="Write your own note for this question… (saved automatically)">${esc(getNote(q.id))}</textarea>
+    </div>`;
   $("#modal-flag").onclick = e => {
     const s = qs(q.id);
     s.flag = !s.flag;
@@ -1088,6 +1170,10 @@ function openReview(it) {
     e.target.className = "toolbtn" + (s.flag ? " on" : "");
     e.target.textContent = "⚑ " + (s.flag ? "Flagged" : "Flag");
   };
+  let mNoteTimer = null;
+  const mNote = $("#modal-note");
+  mNote.addEventListener("input", () => { clearTimeout(mNoteTimer); mNoteTimer = setTimeout(() => setNote(q.id, mNote.value), 500); });
+  mNote.addEventListener("blur", () => { clearTimeout(mNoteTimer); setNote(q.id, mNote.value); });
   $("#modal").hidden = false;
 }
 
@@ -1173,6 +1259,7 @@ applyTheme();
 
 $("#btn-home").onclick = renderHome;
 $("#btn-stats").onclick = renderStats;
+$("#btn-due").onclick = startDueReview;
 $("#btn-study").onclick = () => openSetup("study");
 $("#btn-mock").onclick = () => openSetup("mock");
 $("#btn-flagged").onclick = () => openSetup("study", "flag");
@@ -1218,6 +1305,19 @@ $("#btn-skip").onclick = () => { // mock only: proceed without answering
   nextQuestion();
 };
 $("#recall").onclick = e => { const b = e.target.closest("button[data-grade]"); if (b) selfGrade(b.dataset.grade); };
+
+// per-question note: autosave while typing (debounced) and on blur
+let noteTimer = null;
+$("#q-note").addEventListener("input", e => {
+  const id = +e.target.dataset.qid;
+  if (!id) return;
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(() => setNote(id, e.target.value), 500);
+});
+$("#q-note").addEventListener("blur", e => {
+  const id = +e.target.dataset.qid;
+  if (id) { clearTimeout(noteTimer); setNote(id, e.target.value); }
+});
 
 $("#btn-res-home").onclick = renderHome;
 $("#btn-res-retry").onclick = () => {
@@ -1348,7 +1448,24 @@ function mergeState(local, incoming) {
     .sort((x, y) => y.ts - x.ts)
     .filter(h => (seen.has(h.ts) ? false : seen.add(h.ts)))
     .slice(0, 50);
+  // notes: keep the most recently edited note per question
+  out.notes = {};
+  const nids = new Set([...Object.keys(local.notes || {}), ...Object.keys(incoming.notes || {})]);
+  for (const id of nids) {
+    const a = (local.notes || {})[id], b = (incoming.notes || {})[id];
+    out.notes[id] = !a ? b : !b ? a : ((b.ts || 0) > (a.ts || 0) ? b : a);
+  }
   return out;
+}
+
+/* ---------------- per-question notes ---------------- */
+const getNote = id => (S.notes && S.notes[id] && S.notes[id].text) || "";
+function setNote(id, text) {
+  if (!S.notes) S.notes = {};
+  const t = (text || "").trim();
+  if (t) S.notes[id] = { text: t, ts: Date.now() };
+  else delete S.notes[id];
+  save();
 }
 
 $("#btn-export").onclick = exportProgress;

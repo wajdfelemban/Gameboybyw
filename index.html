@@ -45,6 +45,15 @@
 
     <div class="stat-grid" id="home-stats"></div>
 
+    <button class="due-card" id="btn-due">
+      <span class="due-cal"><b id="due-day">–</b><small id="due-mon"></small></span>
+      <span class="due-body">
+        <span class="due-title">Today's Review</span>
+        <span class="due-desc" id="due-desc">Your questions due for review today.</span>
+      </span>
+      <span class="due-go">▶</span>
+    </button>
+
     <div class="action-grid">
       <button class="action-card" id="btn-study">
         <span class="gb-key key-a">A</span>
@@ -143,6 +152,10 @@
         <div class="fb-banner" id="fb-banner"></div>
         <div class="fb-oneline" id="fb-oneline"></div>
         <div class="fb-hy" id="fb-hy"></div>
+        <div class="fb-note">
+          <label for="q-note">📝 My note</label>
+          <textarea id="q-note" placeholder="Write your own note for this question… (saved automatically)"></textarea>
+        </div>
         <div class="recall" id="recall">
           <p>HOW WELL DID YOU KNOW IT?</p>
           <div class="recall-btns">
